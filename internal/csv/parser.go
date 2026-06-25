@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"io"
@@ -19,10 +20,28 @@ type metaResponse struct {
 	Timestamp int64  `json:"timestamp"`
 }
 
-func ParseCSV(metaURL string) ([]models.Stock, error) {
+func ParseCSV(
+	ctx context.Context,
+	metaURL string,
+) ([]models.Stock, error) {
+	//just to check context
+	go func() {
+		<-ctx.Done()
+		log.Println("Context cancelled:", ctx.Err())
+	}()
 
 	// Step 1 — Meta URL se actual CSV URL nikalo
-	resp, err := http.Get(metaURL)
+	req, err := http.NewRequestWithContext(
+		ctx,
+		"GET",
+		metaURL,
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +60,17 @@ func ParseCSV(metaURL string) ([]models.Stock, error) {
 	log.Println("Actual CSV URL:", meta.SmURL)
 
 	// Step 2 — Actual CSV URL se data fetch karo
-	csvResp, err := http.Get(meta.SmURL)
+	csvReq, err := http.NewRequestWithContext(
+		ctx,
+		"GET",
+		meta.SmURL,
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	csvResp, err := http.DefaultClient.Do(csvReq)
 	if err != nil {
 		return nil, err
 	}
@@ -184,3 +213,5 @@ func parseInt64(s string) int64 {
 	val, _ := strconv.ParseInt(s, 10, 64)
 	return val
 }
+
+//justy to check

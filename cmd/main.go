@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"log"
 	"net"
@@ -92,15 +93,18 @@ func main() {
 	go func() {
 		log.Println("Loading CSV data from URL...")
 
-		stocks, err := csvhandler.ParseCSV(cfg.CSVURL)
+		ctx := context.Background()
+
+		stocks, err := csvhandler.ParseCSV(ctx, cfg.CSVURL)
 		if err != nil {
 			log.Printf("CSV load error: %v", err)
 			return
 		}
 
 		inserted := 0
+
 		for _, s := range stocks {
-			if err := csvRepo.UpsertStock(&s); err == nil {
+			if err := csvRepo.UpsertStock(ctx, &s); err == nil {
 				inserted++
 			}
 		}
