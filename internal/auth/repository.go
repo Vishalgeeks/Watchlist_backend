@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"watchlist-backend/pkg/models"
@@ -14,16 +15,16 @@ func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) CreateUser(user *models.User, passwordHash string) error {
+func (r *Repository) CreateUser(ctx context.Context, user *models.User, passwordHash string) error {
 	query := `
 		INSERT INTO users (name, email, password_hash, created_at, updated_at)
 		VALUES ($1, $2, $3, NOW(), NOW())
 		RETURNING id
 	`
-	return r.db.QueryRow(query, user.Name, user.Email, passwordHash).Scan(&user.ID)
+	return r.db.QueryRowContext(ctx, query, user.Name, user.Email, passwordHash).Scan(&user.ID)
 }
 
-func (r *Repository) GetUserByEmail(email string) (*models.User, string, error) {
+func (r *Repository) GetUserByEmail(ctx context.Context, email string) (*models.User, string, error) {
 	query := `
 		SELECT id, name, email, password_hash, created_at
 		FROM users WHERE email = $1
@@ -31,7 +32,7 @@ func (r *Repository) GetUserByEmail(email string) (*models.User, string, error) 
 	user := &models.User{}
 	var passwordHash string
 
-	err := r.db.QueryRow(query, email).Scan(
+	err := r.db.QueryRowContext(ctx, query, email).Scan(
 		&user.ID, &user.Name, &user.Email, &passwordHash, &user.CreatedAt,
 	)
 	if err == sql.ErrNoRows {

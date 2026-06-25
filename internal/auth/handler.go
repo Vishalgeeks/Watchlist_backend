@@ -23,6 +23,8 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 
 // POST /api/auth/register
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	var req models.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, models.Response{
@@ -32,7 +34,6 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validation
 	if errs := validator.Validate(req); len(errs) > 0 {
 		writeJSON(w, http.StatusBadRequest, models.Response{
 			Success: false,
@@ -42,7 +43,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.service.Register(&req)
+	resp, err := h.service.Register(ctx, &req)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, models.Response{
 			Success: false,
@@ -60,6 +61,8 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/auth/login
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	var req models.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, models.Response{
@@ -69,7 +72,6 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validation
 	if errs := validator.Validate(req); len(errs) > 0 {
 		writeJSON(w, http.StatusBadRequest, models.Response{
 			Success: false,
@@ -79,7 +81,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.service.Login(&req)
+	resp, err := h.service.Login(ctx, &req)
 	if err != nil {
 		writeJSON(w, http.StatusUnauthorized, models.Response{
 			Success: false,

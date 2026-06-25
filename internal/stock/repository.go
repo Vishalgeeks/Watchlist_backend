@@ -1,6 +1,7 @@
 package stock
 
 import (
+	"context"
 	"database/sql"
 
 	"watchlist-backend/pkg/models"
@@ -14,16 +15,14 @@ func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) Create(stock *models.Stock) error {
+func (r *Repository) Create(ctx context.Context, stock *models.Stock) error {
 	query := `
 		INSERT INTO stocks
 		(symbol, company_name, exchange, LTP)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, last_updated
 	`
-
-	return r.db.QueryRow(
-		query,
+	return r.db.QueryRowContext(ctx, query,
 		stock.Symbol,
 		stock.CompanyName,
 		stock.Exchange,
@@ -31,25 +30,22 @@ func (r *Repository) Create(stock *models.Stock) error {
 	).Scan(&stock.ID, &stock.LastUpdated)
 }
 
-func (r *Repository) GetAll() ([]models.Stock, error) {
+func (r *Repository) GetAll(ctx context.Context) ([]models.Stock, error) {
 	query := `
 		SELECT id, symbol, company_name, exchange,
 		       LTP, last_updated
 		FROM stocks
 		ORDER BY symbol
 	`
-
-	rows, err := r.db.Query(query)
+	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	var stocks []models.Stock
-
 	for rows.Next() {
 		var s models.Stock
-
 		err := rows.Scan(
 			&s.ID,
 			&s.Symbol,
@@ -58,28 +54,23 @@ func (r *Repository) GetAll() ([]models.Stock, error) {
 			&s.LTP,
 			&s.LastUpdated,
 		)
-
 		if err != nil {
 			return nil, err
 		}
-
 		stocks = append(stocks, s)
 	}
-
 	return stocks, nil
 }
 
-func (r *Repository) GetByID(id string) (*models.Stock, error) {
+func (r *Repository) GetByID(ctx context.Context, id string) (*models.Stock, error) {
 	query := `
 		SELECT id, symbol, company_name,
 		       exchange, LTP, last_updated
 		FROM stocks
 		WHERE id = $1
 	`
-
 	var stock models.Stock
-
-	err := r.db.QueryRow(query, id).Scan(
+	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&stock.ID,
 		&stock.Symbol,
 		&stock.CompanyName,
@@ -87,15 +78,13 @@ func (r *Repository) GetByID(id string) (*models.Stock, error) {
 		&stock.LTP,
 		&stock.LastUpdated,
 	)
-
 	if err != nil {
 		return nil, err
 	}
-
 	return &stock, nil
 }
 
-func (r *Repository) Update(id string, stock *models.Stock) error {
+func (r *Repository) Update(ctx context.Context, id string, stock *models.Stock) error {
 	query := `
 		UPDATE stocks
 		SET symbol = $1,
@@ -106,9 +95,7 @@ func (r *Repository) Update(id string, stock *models.Stock) error {
 		WHERE id = $5
 		RETURNING last_updated
 	`
-
-	return r.db.QueryRow(
-		query,
+	return r.db.QueryRowContext(ctx, query,
 		stock.Symbol,
 		stock.CompanyName,
 		stock.Exchange,
@@ -117,11 +104,10 @@ func (r *Repository) Update(id string, stock *models.Stock) error {
 	).Scan(&stock.LastUpdated)
 }
 
-func (r *Repository) Delete(id string) error {
-	_, err := r.db.Exec(
+func (r *Repository) Delete(ctx context.Context, id string) error {
+	_, err := r.db.ExecContext(ctx,
 		"DELETE FROM stocks WHERE id = $1",
 		id,
 	)
-
 	return err
 }

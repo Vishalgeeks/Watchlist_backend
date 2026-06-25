@@ -26,7 +26,8 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 
 // POST /api/watchlists
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(int)
+	ctx := r.Context()
+	userID := ctx.Value("user_id").(int)
 
 	var req models.CreateWatchlistRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -37,7 +38,6 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validation
 	if errs := validator.Validate(req); len(errs) > 0 {
 		writeJSON(w, http.StatusBadRequest, models.Response{
 			Success: false,
@@ -47,10 +47,10 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wl, err := h.service.CreateWatchlist(userID, req.Name)
+	wl, err := h.service.CreateWatchlist(ctx, userID, req.Name)
 	if err != nil {
 		if err.Error() == "watchlist with this name already exists" {
-			writeJSON(w, http.StatusInternalServerError, models.Response{
+			writeJSON(w, http.StatusBadRequest, models.Response{
 				Success: false,
 				Message: err.Error(),
 			})
@@ -58,7 +58,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 		writeJSON(w, http.StatusInternalServerError, models.Response{
 			Success: false,
-			Message: err.Error(), // ← "failed to create watchlist" ki jagah actual error
+			Message: err.Error(),
 		})
 		return
 	}
@@ -72,9 +72,10 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/watchlists
 func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(int)
+	ctx := r.Context()
+	userID := ctx.Value("user_id").(int)
 
-	watchlists, err := h.service.GetWatchlists(userID)
+	watchlists, err := h.service.GetWatchlists(ctx, userID)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, models.Response{
 			Success: false,
@@ -96,7 +97,8 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 // DELETE /api/watchlists/{id}
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(int)
+	ctx := r.Context()
+	userID := ctx.Value("user_id").(int)
 	vars := mux.Vars(r)
 
 	watchlistID, err := strconv.Atoi(vars["id"])
@@ -108,7 +110,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.DeleteWatchlist(userID, watchlistID); err != nil {
+	if err := h.service.DeleteWatchlist(ctx, userID, watchlistID); err != nil {
 		if err.Error() == "unauthorized" {
 			writeJSON(w, http.StatusForbidden, models.Response{
 				Success: false,
@@ -138,7 +140,8 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/watchlists/{id}/stocks
 func (h *Handler) GetStocks(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(int)
+	ctx := r.Context()
+	userID := ctx.Value("user_id").(int)
 	vars := mux.Vars(r)
 
 	watchlistID, err := strconv.Atoi(vars["id"])
@@ -150,7 +153,7 @@ func (h *Handler) GetStocks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items, err := h.service.GetStocks(userID, watchlistID)
+	items, err := h.service.GetStocks(ctx, userID, watchlistID)
 	if err != nil {
 		if err.Error() == "unauthorized" {
 			writeJSON(w, http.StatusForbidden, models.Response{
@@ -186,7 +189,8 @@ func (h *Handler) GetStocks(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/watchlists/{id}/stocks
 func (h *Handler) AddStock(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(int)
+	ctx := r.Context()
+	userID := ctx.Value("user_id").(int)
 	vars := mux.Vars(r)
 
 	watchlistID, err := strconv.Atoi(vars["id"])
@@ -207,7 +211,6 @@ func (h *Handler) AddStock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validation
 	if errs := validator.Validate(req); len(errs) > 0 {
 		writeJSON(w, http.StatusBadRequest, models.Response{
 			Success: false,
@@ -217,7 +220,7 @@ func (h *Handler) AddStock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.AddStock(userID, watchlistID, req.StockID); err != nil {
+	if err := h.service.AddStock(ctx, userID, watchlistID, req.StockID); err != nil {
 		if err.Error() == "unauthorized" {
 			writeJSON(w, http.StatusForbidden, models.Response{
 				Success: false,
@@ -254,7 +257,8 @@ func (h *Handler) AddStock(w http.ResponseWriter, r *http.Request) {
 
 // DELETE /api/watchlists/{id}/stocks/{stockId}
 func (h *Handler) RemoveStock(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(int)
+	ctx := r.Context()
+	userID := ctx.Value("user_id").(int)
 	vars := mux.Vars(r)
 
 	watchlistID, err := strconv.Atoi(vars["id"])
@@ -275,7 +279,7 @@ func (h *Handler) RemoveStock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.RemoveStock(userID, watchlistID, stockID); err != nil {
+	if err := h.service.RemoveStock(ctx, userID, watchlistID, stockID); err != nil {
 		if err.Error() == "unauthorized" {
 			writeJSON(w, http.StatusForbidden, models.Response{
 				Success: false,

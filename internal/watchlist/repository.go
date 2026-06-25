@@ -1,6 +1,7 @@
 package watchlist
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"watchlist-backend/pkg/models"
@@ -14,28 +15,27 @@ func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-// Same user ki same name ki watchlist exist karti hai?
-func (r *Repository) ExistsByName(userID int, name string) (bool, error) {
+func (r *Repository) ExistsByName(ctx context.Context, userID int, name string) (bool, error) {
 	query := `
 		SELECT COUNT(*) FROM watchlists
 		WHERE user_id = $1
 		AND LOWER(TRIM(name)) = LOWER(TRIM($2))
 	`
 	var count int
-	err := r.db.QueryRow(query, userID, name).Scan(&count)
+	err := r.db.QueryRowContext(ctx, query, userID, name).Scan(&count)
 	return count > 0, err
 }
 
-func (r *Repository) Create(w *models.Watchlist) error {
+func (r *Repository) Create(ctx context.Context, w *models.Watchlist) error {
 	query := `
 		INSERT INTO watchlists (user_id, name, created_at)
 		VALUES ($1, $2, NOW())
 		RETURNING id
 	`
-	return r.db.QueryRow(query, w.UserID, w.Name).Scan(&w.ID)
+	return r.db.QueryRowContext(ctx, query, w.UserID, w.Name).Scan(&w.ID)
 }
 
-func (r *Repository) GetAllByUserID(userID int) ([]models.Watchlist, error) {
+func (r *Repository) GetAllByUserID(ctx context.Context, userID int) ([]models.Watchlist, error) {
 	query := `
 		SELECT w.id, w.user_id, w.name, w.created_at,
 		       COUNT(wi.id) as stock_count
@@ -45,7 +45,7 @@ func (r *Repository) GetAllByUserID(userID int) ([]models.Watchlist, error) {
 		GROUP BY w.id
 		ORDER BY w.created_at DESC
 	`
-	rows, err := r.db.Query(query, userID)
+	rows, err := r.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -62,22 +62,22 @@ func (r *Repository) GetAllByUserID(userID int) ([]models.Watchlist, error) {
 	return watchlists, nil
 }
 
-func (r *Repository) GetByID(watchlistID int) (*models.Watchlist, error) {
+func (r *Repository) GetByID(ctx context.Context, watchlistID int) (*models.Watchlist, error) {
 	query := `SELECT id, user_id, name, created_at FROM watchlists WHERE id = $1`
 	w := &models.Watchlist{}
-	err := r.db.QueryRow(query, watchlistID).Scan(&w.ID, &w.UserID, &w.Name, &w.CreatedAt)
+	err := r.db.QueryRowContext(ctx, query, watchlistID).Scan(&w.ID, &w.UserID, &w.Name, &w.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("watchlist not found")
 	}
 	return w, err
 }
 
-func (r *Repository) Delete(watchlistID int) error {
-	_, err := r.db.Exec(`DELETE FROM watchlists WHERE id = $1`, watchlistID)
+func (r *Repository) Delete(ctx context.Context, watchlistID int) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM watchlists WHERE id = $1`, watchlistID)
 	return err
 }
 
-func (r *Repository) GetStocks(watchlistID int) ([]models.WatchlistItem, error) {
+func (r *Repository) GetStocks(ctx context.Context, watchlistID int) ([]models.WatchlistItem, error) {
 	query := `
 		SELECT
 			wi.id, wi.watchlist_id, wi.stock_id, wi.added_at,
@@ -94,7 +94,7 @@ func (r *Repository) GetStocks(watchlistID int) ([]models.WatchlistItem, error) 
 		WHERE wi.watchlist_id = $1
 		ORDER BY wi.added_at DESC
 	`
-	rows, err := r.db.Query(query, watchlistID)
+	rows, err := r.db.QueryContext(ctx, query, watchlistID)
 	if err != nil {
 		return nil, err
 	}
@@ -124,26 +124,26 @@ func (r *Repository) GetStocks(watchlistID int) ([]models.WatchlistItem, error) 
 	return items, nil
 }
 
-func (r *Repository) AddStock(watchlistID, stockID int) error {
+func (r *Repository) AddStock(ctx context.Context, watchlistID, stockID int) error {
 	query := `
 		INSERT INTO watchlist_items (watchlist_id, stock_id, added_at)
 		VALUES ($1, $2, NOW())
 	`
-	_, err := r.db.Exec(query, watchlistID, stockID)
+	_, err := r.db.ExecContext(ctx, query, watchlistID, stockID)
 	return err
 }
 
-func (r *Repository) RemoveStock(watchlistID, stockID int) error {
-	_, err := r.db.Exec(
+func (r *Repository) RemoveStock(ctx context.Context, watchlistID, stockID int) error {
+	_, err := r.db.ExecContext(ctx,
 		`DELETE FROM watchlist_items WHERE watchlist_id = $1 AND stock_id = $2`,
 		watchlistID, stockID,
 	)
 	return err
 }
 
-func (r *Repository) StockExists(watchlistID, stockID int) (bool, error) {
+func (r *Repository) StockExists(ctx context.Context, watchlistID, stockID int) (bool, error) {
 	var count int
-	err := r.db.QueryRow(
+	err := r.db.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM watchlist_items WHERE watchlist_id = $1 AND stock_id = $2`,
 		watchlistID, stockID,
 	).Scan(&count)

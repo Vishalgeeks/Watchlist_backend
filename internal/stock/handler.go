@@ -52,6 +52,8 @@ func (h *Handler) RegisterRoutes(r *mux.Router) {
 }
 
 func (h *Handler) CreateStock(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	var stock models.Stock
 	if err := json.NewDecoder(r.Body).Decode(&stock); err != nil {
 		writeJSON(w, http.StatusBadRequest, models.Response{
@@ -61,7 +63,7 @@ func (h *Handler) CreateStock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.CreateStock(&stock); err != nil {
+	if err := h.service.CreateStock(ctx, &stock); err != nil {
 		writeJSON(w, http.StatusBadRequest, models.Response{
 			Success: false,
 			Message: err.Error(),
@@ -77,7 +79,9 @@ func (h *Handler) CreateStock(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetAllStocks(w http.ResponseWriter, r *http.Request) {
-	stocks, err := h.service.GetAllStocks()
+	ctx := r.Context()
+
+	stocks, err := h.service.GetAllStocks(ctx)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, models.Response{
 			Success: false,
@@ -99,9 +103,10 @@ func (h *Handler) GetAllStocks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetStockByID(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id := mux.Vars(r)["id"]
 
-	stock, err := h.service.GetStockByID(id)
+	stock, err := h.service.GetStockByID(ctx, id)
 	if err != nil {
 		writeJSON(w, http.StatusNotFound, models.Response{
 			Success: false,
@@ -118,6 +123,7 @@ func (h *Handler) GetStockByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateStock(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id := mux.Vars(r)["id"]
 
 	var stock models.Stock
@@ -129,7 +135,7 @@ func (h *Handler) UpdateStock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.UpdateStock(id, &stock); err != nil {
+	if err := h.service.UpdateStock(ctx, id, &stock); err != nil {
 		writeJSON(w, http.StatusBadRequest, models.Response{
 			Success: false,
 			Message: err.Error(),
@@ -145,9 +151,10 @@ func (h *Handler) UpdateStock(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteStock(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id := mux.Vars(r)["id"]
 
-	if err := h.service.DeleteStock(id); err != nil {
+	if err := h.service.DeleteStock(ctx, id); err != nil {
 		writeJSON(w, http.StatusInternalServerError, models.Response{
 			Success: false,
 			Message: err.Error(),
