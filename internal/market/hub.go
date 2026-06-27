@@ -17,7 +17,7 @@ var upgrader = websocket.Upgrader{
 }
 
 type Hub struct {
-	mu sync.RWMutex
+	mu      sync.RWMutex
 	clients map[*wsClient]struct{}
 }
 
@@ -76,9 +76,9 @@ func (h *Hub) sendToUser(userID int, msg []byte) {
 }
 
 type wsClient struct {
-	hub *Hub
-	conn *websocket.Conn
-	send chan []byte
+	hub    *Hub
+	conn   *websocket.Conn
+	send   chan []byte
 	userID int
 }
 
@@ -112,9 +112,9 @@ func (h *Hub) ServeWS(
 	}
 
 	client := &wsClient{
-		hub: h,
-		conn: conn,
-		send: make(chan []byte, 256),
+		hub:    h,
+		conn:   conn,
+		send:   make(chan []byte, 256),
 		userID: userID,
 	}
 
@@ -156,39 +156,39 @@ func (c *wsClient) read() {
 func validateToken(
 	tokenString string,
 	secret string,
-)(int,bool){
+) (int, bool) {
 
 	token, err := jwt.Parse(
 		tokenString,
 
-		func(token *jwt.Token)(interface{},error){
+		func(token *jwt.Token) (interface{}, error) {
 
-			if _,ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 
 				return nil, fmt.Errorf(
 					"invalid signing method",
 				)
 			}
 
-			return []byte(secret),nil
+			return []byte(secret), nil
 		},
 	)
 
 	if err != nil || !token.Valid {
-		return 0,false
+		return 0, false
 	}
 
-	claims,ok := token.Claims.(jwt.MapClaims)
+	claims, ok := token.Claims.(jwt.MapClaims)
 
 	if !ok {
-		return 0,false
+		return 0, false
 	}
 
-	id,ok := claims["user_id"].(float64)
+	id, ok := claims["user_id"].(float64)
 
 	if !ok {
-		return 0,false
+		return 0, false
 	}
 
-	return int(id),true
+	return int(id), true
 }

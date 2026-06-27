@@ -10,41 +10,41 @@ import (
 )
 
 type instrument struct {
-	ExchangeSegment int
+	ExchangeSegment      int
 	ExchangeInstrumentID int64
 }
 
 type Tick struct {
-	ExchangeSegment int `json:"exchangeSegment"`
-	ExchangeInstrumentID int64 `json:"exchangeInstrumentID"`
-	LTP float64 `json:"ltp"`
-	Open float64 `json:"open"`
-	High float64 `json:"high"`
-	Low float64 `json:"low"`
-	Close float64 `json:"close"`
-	Change float64 `json:"change"`
-	PercentChange float64 `json:"percentChange"`
-	TotalTradedQty int64 `json:"totalTradedQty"`
-	LastUpdateTime string `json:"lastUpdateTime"`
+	ExchangeSegment      int     `json:"exchangeSegment"`
+	ExchangeInstrumentID int64   `json:"exchangeInstrumentID"`
+	LTP                  float64 `json:"ltp"`
+	Open                 float64 `json:"open"`
+	High                 float64 `json:"high"`
+	Low                  float64 `json:"low"`
+	Close                float64 `json:"close"`
+	Change               float64 `json:"change"`
+	PercentChange        float64 `json:"percentChange"`
+	TotalTradedQty       int64   `json:"totalTradedQty"`
+	LastUpdateTime       string  `json:"lastUpdateTime"`
 }
 
 type tickEnvelope struct {
 	Type string `json:"type"`
-	Data Tick `json:"data"`
+	Data Tick   `json:"data"`
 }
 
 type Client struct {
-	mu sync.Mutex
+	mu   sync.Mutex
 	subs map[int]map[instrument]*Tick
 	stop chan struct{}
-	hub *Hub
+	hub  *Hub
 }
 
 func newClient(h *Hub) *Client {
 	return &Client{
 		subs: make(map[int]map[instrument]*Tick),
 		stop: make(chan struct{}),
-		hub: h,
+		hub:  h,
 	}
 }
 
@@ -165,17 +165,17 @@ func randomTick(ins instrument, last *Tick) *Tick {
 	change := round2(price - open)
 
 	return &Tick{
-		ExchangeSegment: ins.ExchangeSegment,
+		ExchangeSegment:      ins.ExchangeSegment,
 		ExchangeInstrumentID: ins.ExchangeInstrumentID,
-		LTP: price,
-		Open: round2(open),
-		High: round2(high),
-		Low: round2(low),
-		Close: round2(open),
-		Change: change,
-		PercentChange: round2((change/open)*100),
-		TotalTradedQty: int64(rng.Intn(10000000)),
-		LastUpdateTime: time.Now().Format("2006-01-02 15:04:05"),
+		LTP:                  price,
+		Open:                 round2(open),
+		High:                 round2(high),
+		Low:                  round2(low),
+		Close:                round2(open),
+		Change:               change,
+		PercentChange:        round2((change / open) * 100),
+		TotalTradedQty:       int64(rng.Intn(10000000)),
+		LastUpdateTime:       time.Now().Format("2006-01-02 15:04:05"),
 	}
 }
 

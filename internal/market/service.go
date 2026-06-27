@@ -7,12 +7,13 @@ import (
 
 	"watchlist-backend/pkg/models"
 )
+
 // type InstrumentMap struct {
 // 	Symbol string
 // }
 type Service struct {
-	hub *Hub
-	client *Client
+	hub       *Hub
+	client    *Client
 	jwtSecret string
 }
 
@@ -22,10 +23,9 @@ func NewService(secret string) *Service {
 	c := newClient(h)
 
 	return &Service{
-		hub: h,
-		client: c,
+		hub:       h,
+		client:    c,
 		jwtSecret: secret,
-
 	}
 }
 
@@ -59,7 +59,7 @@ func (s *Service) ServeWS(w http.ResponseWriter, r *http.Request) {
 func (s *Service) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Instruments []struct {
-			ExchangeSegment int `json:"exchangeSegment"`
+			ExchangeSegment      int   `json:"exchangeSegment"`
 			ExchangeInstrumentID int64 `json:"exchangeInstrumentID"`
 		} `json:"instruments"`
 		XTSMessageCode int `json:"xtsMessageCode"`
@@ -88,7 +88,7 @@ func (s *Service) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 	s.client.Subscribe(userID, ins)
 
 	writeOK(w, map[string]interface{}{
-		"user_id": userID,
+		"user_id":    userID,
 		"subscribed": len(ins),
 	})
 }
@@ -96,7 +96,7 @@ func (s *Service) HandleSubscribe(w http.ResponseWriter, r *http.Request) {
 func (s *Service) HandleUnsubscribe(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Instruments []struct {
-			ExchangeSegment int `json:"exchangeSegment"`
+			ExchangeSegment      int   `json:"exchangeSegment"`
 			ExchangeInstrumentID int64 `json:"exchangeInstrumentID"`
 		} `json:"instruments"`
 	}
@@ -128,7 +128,7 @@ func (s *Service) HandleUnsubscribe(w http.ResponseWriter, r *http.Request) {
 
 func (s *Service) HandleStatus(w http.ResponseWriter, r *http.Request) {
 	writeOK(w, map[string]interface{}{
-		"frontendClients": s.hub.count(),
+		"frontendClients":     s.hub.count(),
 		"activeSubscriptions": s.client.ActiveCount(),
 	})
 }
@@ -137,7 +137,7 @@ func (s *Service) HandleQuotes(w http.ResponseWriter, r *http.Request) {
 
 	var req struct {
 		Instruments []struct {
-			ExchangeSegment int `json:"exchangeSegment"`
+			ExchangeSegment      int   `json:"exchangeSegment"`
 			ExchangeInstrumentID int64 `json:"exchangeInstrumentID"`
 		} `json:"instruments"`
 	}
@@ -165,10 +165,10 @@ func (s *Service) HandleQuotes(w http.ResponseWriter, r *http.Request) {
 func (s *Service) HandleWatchlistPrices(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Stocks []struct {
-			StockID int `json:"stock_id"`
-			Symbol string `json:"symbol"`
+			StockID              int    `json:"stock_id"`
+			Symbol               string `json:"symbol"`
 			ExchangeInstrumentID string `json:"exchange_instrument_id"`
-			ExchangeSegment int `json:"exchange_segment"`
+			ExchangeSegment      int    `json:"exchange_segment"`
 		} `json:"stocks"`
 	}
 
@@ -186,10 +186,10 @@ func (s *Service) HandleWatchlistPrices(w http.ResponseWriter, r *http.Request) 
 		)
 
 		response = append(response, map[string]interface{}{
-			"stock_id": st.StockID,
-			"symbol": st.Symbol,
-			"ltp": tick.LTP,
-			"change": tick.Change,
+			"stock_id":      st.StockID,
+			"symbol":        st.Symbol,
+			"ltp":           tick.LTP,
+			"change":        tick.Change,
 			"percentChange": tick.PercentChange,
 		})
 	}
@@ -203,7 +203,7 @@ func writeOK(w http.ResponseWriter, data interface{}) {
 	json.NewEncoder(w).Encode(
 		models.Response{
 			Success: true,
-			Data: data,
+			Data:    data,
 		},
 	)
 }
