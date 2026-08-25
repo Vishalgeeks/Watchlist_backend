@@ -12,12 +12,14 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"watchlist-backend/cache"
 	"watchlist-backend/config"
 	"watchlist-backend/internal/auth"
-	csvhandler "watchlist-backend/internal/csv"
+	"watchlist-backend/internal/csv"
 	"watchlist-backend/internal/db"
 	"watchlist-backend/internal/market"
 	"watchlist-backend/internal/middleware"
+	"watchlist-backend/internal/order"
 	"watchlist-backend/internal/search"
 	"watchlist-backend/internal/stock"
 	"watchlist-backend/internal/watchlist"
@@ -71,6 +73,9 @@ func main() {
 	dbConn := db.Connect(cfg.DatabaseURL)
 	defer dbConn.Close()
 
+	// ... your existing DB init
+	cache.InitRedis()
+
 	// AUTH
 	authRepo := auth.NewRepository(dbConn)
 	authService := auth.NewService(authRepo, cfg.JWTSecret)
@@ -87,8 +92,8 @@ func main() {
 	stockHandler := stock.NewHandler(stockService)
 
 	// CSV
-	csvRepo := csvhandler.NewRepository(dbConn)
-	csvHandler := csvhandler.NewHandler(
+	csvRepo := csv.NewRepository(dbConn)
+	csvHandler := csv.NewHandler(
 		csvRepo,
 		cfg.CSVURL,
 	)
@@ -98,6 +103,11 @@ func main() {
 	searchService := search.NewService(searchRepo)
 	searchHandler := search.NewHandler(searchService)
 
+	// ORDER
+	orderRepo := order.NewRepository(dbConn)
+	orderService := order.NewService(orderRepo)
+	orderHandler := order.NewHandler(orderService)
+
 	// CSV BACKGROUND LOADER
 	go func() {
 
@@ -105,7 +115,7 @@ func main() {
 
 		ctx := context.Background()
 
-		stocks, err := csvhandler.ParseCSV(ctx, cfg.CSVURL)
+		stocks, err := csv.ParseCSV(ctx, cfg.CSVURL)
 		if err != nil {
 			log.Printf("CSV load error: %v", err)
 			return
@@ -300,6 +310,27 @@ func main() {
 		"/market/status",
 		marketSvc.HandleStatus,
 	).Methods("GET")
+
+	// ORDER ROUTES
+	protected.HandleFunc(
+		"/orders",
+		orderHandler.CreateOrder,
+	).Methods("POST")
+
+	protected.HandleFunc(
+		"/orders",
+		orderHandler.GetAllOrders,
+	).Methods("GET")
+
+	protected.HandleFunc(
+		"/orders/{id}",
+		orderHandler.GetOrder,
+	).Methods("GET")
+
+	protected.HandleFunc(
+		"/orders/{id}/cancel",
+		orderHandler.CancelOrder,
+	).Methods("PUT")
 
 	// SERVER
 	port := os.Getenv("PORT")

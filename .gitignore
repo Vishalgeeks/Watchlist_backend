@@ -13,3 +13,5 @@
 # IDE
 .vscode/
 .idea/
+# plan
+.kilo

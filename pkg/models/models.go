@@ -82,6 +82,29 @@ type AddStockRequest struct {
 	StockID int `json:"stock_id" validate:"required,min=1"`
 }
 
+// ── Order DTOs ─────────────────────────────────────────
+type CreateOrderRequest struct {
+	StockID   int      `json:"stock_id"    validate:"required,min=1"`
+	Side      string   `json:"side"        validate:"required,oneof=BUY SELL"`
+	OrderType string   `json:"order_type"  validate:"required,oneof=MARKET LIMIT"`
+	Quantity  int      `json:"quantity"    validate:"required,min=1"`
+	Price     *float64 `json:"price,omitempty"`
+}
+
+type Order struct {
+	ID        int        `json:"id"`
+	UserID    int        `json:"user_id"`
+	StockID   int        `json:"stock_id"`
+	Side      string     `json:"side"`
+	OrderType string     `json:"order_type"`
+	Quantity  int        `json:"quantity"`
+	Price     *float64   `json:"price,omitempty"`
+	Status    string     `json:"status"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	Stock     *Stock     `json:"stock,omitempty"`
+}
+
 type AuthResponse struct {
 	Token string `json:"token"`
 	User  User   `json:"user"`
