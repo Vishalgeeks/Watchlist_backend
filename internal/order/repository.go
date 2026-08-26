@@ -132,3 +132,19 @@ func (r *Repository) CancelOrder(ctx context.Context, orderID, userID int) (bool
 	}
 	return rowsAffected > 0, nil
 }
+
+func (r *Repository) UpdateStatus(ctx context.Context, orderID, userID int, status string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE orders SET status = $3, updated_at = NOW() WHERE id = $1 AND user_id = $2`,
+		orderID, userID, status,
+	)
+	return err
+}
+
+func (r *Repository) UpdateStatusWithinTx(ctx context.Context, tx *sql.Tx, orderID, userID int, status string) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE orders SET status = $3, updated_at = NOW() WHERE id = $1 AND user_id = $2`,
+		orderID, userID, status,
+	)
+	return err
+}

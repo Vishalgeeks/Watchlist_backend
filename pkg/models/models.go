@@ -105,6 +105,68 @@ type Order struct {
 	Stock     *Stock     `json:"stock,omitempty"`
 }
 
+// ── Wallet / Portfolio / Trade DTOs ─────────────────────
+type Wallet struct {
+	ID        int       `json:"id"`
+	UserID    int       `json:"user_id"`
+	Balance   float64   `json:"balance"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type Portfolio struct {
+	ID        int       `json:"id"`
+	UserID    int       `json:"user_id"`
+	StockID   int       `json:"stock_id"`
+	Quantity  int       `json:"quantity"`
+	AvgPrice  float64   `json:"avg_price"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Stock     *Stock    `json:"stock,omitempty"`
+}
+
+type Trade struct {
+	ID              int        `json:"id"`
+	OrderID         int        `json:"order_id"`
+	UserID          int        `json:"user_id"`
+	StockID         int        `json:"stock_id"`
+	Side            string     `json:"side"`
+	Quantity        int        `json:"quantity"`
+	ExecutionPrice  float64    `json:"execution_price"`
+	TotalAmount     float64    `json:"total_amount"`
+	ExecutedAt      time.Time  `json:"executed_at"`
+	Stock           *Stock     `json:"stock,omitempty"`
+}
+
+type ExecuteOrderRequest struct {
+	OrderID        int     `json:"order_id" validate:"required,min=1"`
+	ExecutionPrice float64 `json:"execution_price,omitempty" validate:"omitempty,gt=0"`
+}
+
+// ── Wallet Transaction DTOs ─────────────────────────────
+type WalletTransaction struct {
+	ID            int       `json:"id"`
+	WalletID      int       `json:"wallet_id"`
+	UserID        int       `json:"user_id"`
+	Type          string    `json:"type"`
+	Amount        float64   `json:"amount"`
+	BalanceAfter  float64   `json:"balance_after"`
+	ReferenceType *string   `json:"reference_type,omitempty"`
+	ReferenceID   *int      `json:"reference_id,omitempty"`
+	Description   *string   `json:"description,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+type DepositRequest struct {
+	Amount      float64 `json:"amount" validate:"required,gt=0"`
+	Description *string `json:"description,omitempty"`
+}
+
+type WithdrawRequest struct {
+	Amount      float64 `json:"amount" validate:"required,gt=0"`
+	Description *string `json:"description,omitempty"`
+}
+
 type AuthResponse struct {
 	Token string `json:"token"`
 	User  User   `json:"user"`

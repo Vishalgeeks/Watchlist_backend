@@ -14,10 +14,15 @@ import (
 type Service struct {
 	repo      *Repository
 	jwtSecret string
+	walletSvc WalletService
 }
 
-func NewService(repo *Repository, jwtSecret string) *Service {
-	return &Service{repo: repo, jwtSecret: jwtSecret}
+type WalletService interface {
+	CreateWalletForUser(ctx context.Context, userID int) error
+}
+
+func NewService(repo *Repository, jwtSecret string, walletSvc WalletService) *Service {
+	return &Service{repo: repo, jwtSecret: jwtSecret, walletSvc: walletSvc}
 }
 
 func (s *Service) Register(ctx context.Context, req *models.RegisterRequest) (*models.AuthResponse, error) {
@@ -48,7 +53,14 @@ func (s *Service) Register(ctx context.Context, req *models.RegisterRequest) (*m
 		return nil, err
 	}
 
-	// 4. Generate token
+	// 4. Create wallet for new user
+	if s.walletSvc != nil {
+		if err := s.walletSvc.CreateWalletForUser(ctx, user.ID); err != nil {
+			return nil, err
+		}
+	}
+
+	// 5. Generate token
 	token, err := s.generateToken(user.ID)
 	if err != nil {
 		return nil, err

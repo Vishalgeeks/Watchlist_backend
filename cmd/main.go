@@ -20,8 +20,11 @@ import (
 	"watchlist-backend/internal/market"
 	"watchlist-backend/internal/middleware"
 	"watchlist-backend/internal/order"
+	"watchlist-backend/internal/portfolio"
 	"watchlist-backend/internal/search"
 	"watchlist-backend/internal/stock"
+	"watchlist-backend/internal/trade"
+	"watchlist-backend/internal/wallet"
 	"watchlist-backend/internal/watchlist"
 )
 
@@ -76,9 +79,13 @@ func main() {
 	// ... your existing DB init
 	cache.InitRedis()
 
+	// WALLET
+	walletRepo := wallet.NewRepository(dbConn)
+	walletSvc := wallet.NewService(walletRepo)
+
 	// AUTH
 	authRepo := auth.NewRepository(dbConn)
-	authService := auth.NewService(authRepo, cfg.JWTSecret)
+	authService := auth.NewService(authRepo, cfg.JWTSecret, walletSvc)
 	authHandler := auth.NewHandler(authService)
 
 	// WATCHLIST
@@ -107,6 +114,17 @@ func main() {
 	orderRepo := order.NewRepository(dbConn)
 	orderService := order.NewService(orderRepo)
 	orderHandler := order.NewHandler(orderService)
+
+	// PORTFOLIO
+	portfolioRepo := portfolio.NewRepository(dbConn)
+	portfolioSvc := portfolio.NewService(portfolioRepo)
+
+	// TRADE
+	tradeRepo := trade.NewRepository(dbConn)
+	tradeSvc := trade.NewService(tradeRepo, dbConn, orderRepo, walletSvc, portfolioSvc, stockRepo)
+	tradeHandler := trade.NewHandler(tradeSvc)
+
+	walletHandler := wallet.NewHandler(walletSvc)
 
 	// CSV BACKGROUND LOADER
 	go func() {
@@ -331,6 +349,48 @@ func main() {
 		"/orders/{id}/cancel",
 		orderHandler.CancelOrder,
 	).Methods("PUT")
+
+	protected.HandleFunc(
+		"/orders/{id}/execute",
+		tradeHandler.ExecuteOrder,
+	).Methods("POST")
+
+	// TRADE ROUTES
+	protected.HandleFunc(
+		"/trades",
+		tradeHandler.GetAllTrades,
+	).Methods("GET")
+
+	protected.HandleFunc(
+		"/trades/{id}",
+		tradeHandler.GetTrade,
+	).Methods("GET")
+
+	// WALLET ROUTES
+	protected.HandleFunc(
+		"/wallet",
+		walletHandler.GetWallet,
+	).Methods("GET")
+
+	protected.HandleFunc(
+		"/wallet/deposit",
+		walletHandler.Deposit,
+	).Methods("POST")
+
+	protected.HandleFunc(
+		"/wallet/withdraw",
+		walletHandler.Withdraw,
+	).Methods("POST")
+
+	protected.HandleFunc(
+		"/wallet/transactions",
+		walletHandler.GetTransactions,
+	).Methods("GET")
+
+	protected.HandleFunc(
+		"/wallet/transactions/{id}",
+		walletHandler.GetTransaction,
+	).Methods("GET")
 
 	// SERVER
 	port := os.Getenv("PORT")

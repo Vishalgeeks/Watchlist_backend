@@ -81,3 +81,7 @@ func (s *Service) CancelOrder(ctx context.Context, userID, orderID int) error {
 	}
 	return nil
 }
+
+func (s *Service) FillOrder(ctx context.Context, orderID, userID int) error {
+	return s.repo.UpdateStatus(ctx, orderID, userID, "FILLED")
+}
