@@ -26,7 +26,7 @@ func (r *Repository) GetByUserID(ctx context.Context, userID int) ([]models.Port
 		       s.cautionary_message_info, s.last_updated
 		FROM portfolios p
 		JOIN stocks s ON s.id = p.stock_id
-		WHERE p.user_id = $1
+		WHERE p.user_id = $1 AND p.quantity > 0
 		ORDER BY p.created_at DESC
 	`
 	rows, err := r.db.QueryContext(ctx, query, userID)
@@ -68,7 +68,7 @@ func (r *Repository) GetHolding(ctx context.Context, userID, stockID int) (*mode
 		       s.cautionary_message_info, s.last_updated
 		FROM portfolios p
 		JOIN stocks s ON s.id = p.stock_id
-		WHERE p.user_id = $1 AND p.stock_id = $2
+		WHERE p.user_id = $1 AND p.stock_id = $2 AND p.quantity > 0
 	`
 	var p models.Portfolio
 	var s models.Stock
@@ -127,12 +127,27 @@ func (r *Repository) AdjustHoldingWithinTx(ctx context.Context, tx *sql.Tx, user
 		return err
 	}
 
-	_, err := tx.ExecContext(ctx,
+	var newQty int
+	err := tx.QueryRowContext(ctx,
 		`UPDATE portfolios SET quantity = quantity + $3, updated_at = NOW()
-		 WHERE user_id = $1 AND stock_id = $2 AND quantity >= ABS($3)`,
+		 WHERE user_id = $1 AND stock_id = $2 AND quantity >= ABS($3)
+		 RETURNING quantity`,
 		userID, stockID, qtyDelta,
-	)
-	return err
+	).Scan(&newQty)
+	if err == sql.ErrNoRows {
+		return errors.New("insufficient holdings")
+	}
+	if err != nil {
+		return err
+	}
+	if newQty == 0 {
+		_, err = tx.ExecContext(ctx,
+			`DELETE FROM portfolios WHERE user_id = $1 AND stock_id = $2`,
+			userID, stockID,
+		)
+		return err
+	}
+	return nil
 }
 
 func (r *Repository) RemoveHolding(ctx context.Context, userID, stockID int) error {

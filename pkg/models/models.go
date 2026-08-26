@@ -123,6 +123,17 @@ type Portfolio struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Stock     *Stock    `json:"stock,omitempty"`
+	CurrentValue       float64 `json:"current_value"`
+	UnrealizedPnL      float64 `json:"unrealized_pnl"`
+	PnLPercentage      float64 `json:"pnl_percentage"`
+}
+
+type PortfolioSummary struct {
+	TotalValue         float64 `json:"total_value"`
+	TotalCostBasis     float64 `json:"total_cost_basis"`
+	TotalUnrealizedPnL float64 `json:"total_unrealized_pnl"`
+	TotalPnLPercentage float64 `json:"total_pnl_percentage"`
+	HoldingsCount      int     `json:"holdings_count"`
 }
 
 type Trade struct {

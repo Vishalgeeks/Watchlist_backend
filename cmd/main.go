@@ -118,6 +118,7 @@ func main() {
 	// PORTFOLIO
 	portfolioRepo := portfolio.NewRepository(dbConn)
 	portfolioSvc := portfolio.NewService(portfolioRepo)
+	portfolioHandler := portfolio.NewHandler(portfolioSvc)
 
 	// TRADE
 	tradeRepo := trade.NewRepository(dbConn)
@@ -390,6 +391,22 @@ func main() {
 	protected.HandleFunc(
 		"/wallet/transactions/{id}",
 		walletHandler.GetTransaction,
+	).Methods("GET")
+
+	// PORTFOLIO ROUTES
+	protected.HandleFunc(
+		"/portfolio/summary",
+		portfolioHandler.GetSummary,
+	).Methods("GET")
+
+	protected.HandleFunc(
+		"/portfolio",
+		portfolioHandler.GetPortfolio,
+	).Methods("GET")
+
+	protected.HandleFunc(
+		"/portfolio/{id}",
+		portfolioHandler.GetHolding,
 	).Methods("GET")
 
 	// SERVER

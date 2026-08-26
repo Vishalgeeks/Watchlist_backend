@@ -27,23 +27,48 @@ func (s *Service) RemoveShares(ctx context.Context, userID, stockID int, qty int
 }
 
 func (s *Service) AdjustHoldingWithinTx(ctx context.Context, tx *sql.Tx, userID, stockID int, qtyDelta int, price float64) error {
-	if qtyDelta > 0 {
-		_, err := tx.ExecContext(ctx,
-			`INSERT INTO portfolios (user_id, stock_id, quantity, avg_price, updated_at)
-			 VALUES ($1, $2, $3, $4, NOW())
-			 ON CONFLICT (user_id, stock_id) DO UPDATE SET
-			   quantity = portfolios.quantity + $3,
-			   avg_price = (portfolios.quantity * portfolios.avg_price + $3 * $4) / (portfolios.quantity + $3),
-			   updated_at = NOW()`,
-			userID, stockID, qtyDelta, price,
-		)
-		return err
-	}
+	return s.repo.AdjustHoldingWithinTx(ctx, tx, userID, stockID, qtyDelta, price)
+}
 
-	_, err := tx.ExecContext(ctx,
-		`UPDATE portfolios SET quantity = quantity + $3, updated_at = NOW()
-		 WHERE user_id = $1 AND stock_id = $2 AND quantity >= ABS($3)`,
-		userID, stockID, qtyDelta,
-	)
-	return err
+func (s *Service) GetHolding(ctx context.Context, userID, stockID int) (*models.Portfolio, error) {
+	return s.repo.GetHolding(ctx, userID, stockID)
+}
+
+func (s *Service) GetEnrichedHoldings(ctx context.Context, userID int) ([]models.Portfolio, error) {
+	holdings, err := s.repo.GetByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if holdings == nil {
+		return []models.Portfolio{}, nil
+	}
+	for i := range holdings {
+		h := &holdings[i]
+		if h.Stock != nil && h.Stock.LTP > 0 {
+			h.CurrentValue = float64(h.Quantity) * h.Stock.LTP
+			h.UnrealizedPnL = (h.Stock.LTP - h.AvgPrice) * float64(h.Quantity)
+			if h.AvgPrice > 0 {
+				h.PnLPercentage = ((h.Stock.LTP - h.AvgPrice) / h.AvgPrice) * 100
+			}
+		}
+	}
+	return holdings, nil
+}
+
+func (s *Service) GetPortfolioSummary(ctx context.Context, userID int) (*models.PortfolioSummary, error) {
+	holdings, err := s.GetEnrichedHoldings(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	summary := &models.PortfolioSummary{}
+	for _, h := range holdings {
+		summary.TotalValue += h.CurrentValue
+		summary.TotalCostBasis += h.AvgPrice * float64(h.Quantity)
+		summary.HoldingsCount++
+	}
+	summary.TotalUnrealizedPnL = summary.TotalValue - summary.TotalCostBasis
+	if summary.TotalCostBasis > 0 {
+		summary.TotalPnLPercentage = (summary.TotalUnrealizedPnL / summary.TotalCostBasis) * 100
+	}
+	return summary, nil
 }
