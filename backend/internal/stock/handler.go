@@ -9,15 +9,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type StockResponse struct {
-	ID          int     `json:"id"`
-	Symbol      string  `json:"symbol"`
-	CompanyName string  `json:"company_name"`
-	Exchange    string  `json:"exchange"`
-	LTP         float64 `json:"ltp"`
-	LastUpdated string  `json:"last_updated"`
-}
-
 type Handler struct {
 	service *Service
 }
@@ -30,17 +21,6 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(data)
-}
-
-func toStockResponse(s models.Stock) StockResponse {
-	return StockResponse{
-		ID:          s.ID,
-		Symbol:      s.Symbol,
-		CompanyName: s.CompanyName,
-		Exchange:    s.Exchange,
-		LTP:         s.LTP,
-		LastUpdated: s.LastUpdated.Format("2006-01-02 15:04:05"),
-	}
 }
 
 func (h *Handler) RegisterRoutes(r *mux.Router) {
@@ -74,7 +54,7 @@ func (h *Handler) CreateStock(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, models.Response{
 		Success: true,
 		Message: "stock created successfully",
-		Data:    toStockResponse(stock),
+		Data:    stock,
 	})
 }
 
@@ -90,15 +70,14 @@ func (h *Handler) GetAllStocks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var response []StockResponse
-	for _, s := range stocks {
-		response = append(response, toStockResponse(s))
+	if stocks == nil {
+		stocks = []models.Stock{}
 	}
 
 	writeJSON(w, http.StatusOK, models.Response{
 		Success: true,
 		Message: "stocks fetched successfully",
-		Data:    response,
+		Data:    stocks,
 	})
 }
 
@@ -118,7 +97,7 @@ func (h *Handler) GetStockByID(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, models.Response{
 		Success: true,
 		Message: "stock fetched successfully",
-		Data:    toStockResponse(*stock),
+		Data:    stock,
 	})
 }
 
@@ -146,7 +125,7 @@ func (h *Handler) UpdateStock(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, models.Response{
 		Success: true,
 		Message: "stock updated successfully",
-		Data:    toStockResponse(stock),
+		Data:    stock,
 	})
 }
 

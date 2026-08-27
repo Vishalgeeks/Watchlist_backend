@@ -18,12 +18,16 @@ func NewRepository(db *sql.DB) *Repository {
 func (r *Repository) GetByUserID(ctx context.Context, userID int) ([]models.Portfolio, error) {
 	query := `
 		SELECT p.id, p.user_id, p.stock_id, p.quantity, p.avg_price, p.created_at, p.updated_at,
-		       s.id, s.exchange_instrument_id, s.segment, s.instrument_type, s.symbol, s.display_name,
-		       s.company_name, s.isin, s.series, s.exchange, s.contract_expiration, s.strike,
-		       s.option_type, s.underlying_symbol_id, s.underlying_symbol, s.lot_size, s.tick_size,
-		       s.upper_circuit, s.lower_circuit, s.freeze_qty, s.description, s.ltp, s.open, s.high,
-		       s.low, s.close, s.vol, s.oi, s.bid, s.ask, s.bid_qty, s.ask_qty,
-		       s.cautionary_message_info, s.last_updated
+		       s.id, COALESCE(s.exchange_instrument_id,''), COALESCE(s.segment,''), COALESCE(s.instrument_type,''),
+		       s.symbol, COALESCE(s.display_name,''), COALESCE(s.company_name,''), COALESCE(s.isin,''),
+		       COALESCE(s.series,''), COALESCE(s.exchange,''), COALESCE(s.contract_expiration,''),
+		       COALESCE(s.strike,0), COALESCE(s.option_type,''), COALESCE(s.underlying_symbol_id,''),
+		       COALESCE(s.underlying_symbol,''), COALESCE(s.lot_size,0), COALESCE(s.tick_size,0),
+		       COALESCE(s.upper_circuit,0), COALESCE(s.lower_circuit,0), COALESCE(s.freeze_qty,0),
+		       COALESCE(s.description,''), COALESCE(s.ltp,0), COALESCE(s.open,0), COALESCE(s.high,0),
+		       COALESCE(s.low,0), COALESCE(s.close,0), COALESCE(s.vol,0), COALESCE(s.oi,0),
+		       COALESCE(s.bid,0), COALESCE(s.ask,0), COALESCE(s.bid_qty,0), COALESCE(s.ask_qty,0),
+		       COALESCE(s.cautionary_message_info,''), s.last_updated
 		FROM portfolios p
 		JOIN stocks s ON s.id = p.stock_id
 		WHERE p.user_id = $1 AND p.quantity > 0
@@ -60,12 +64,16 @@ func (r *Repository) GetByUserID(ctx context.Context, userID int) ([]models.Port
 func (r *Repository) GetHolding(ctx context.Context, userID, stockID int) (*models.Portfolio, error) {
 	query := `
 		SELECT p.id, p.user_id, p.stock_id, p.quantity, p.avg_price, p.created_at, p.updated_at,
-		       s.id, s.exchange_instrument_id, s.segment, s.instrument_type, s.symbol, s.display_name,
-		       s.company_name, s.isin, s.series, s.exchange, s.contract_expiration, s.strike,
-		       s.option_type, s.underlying_symbol_id, s.underlying_symbol, s.lot_size, s.tick_size,
-		       s.upper_circuit, s.lower_circuit, s.freeze_qty, s.description, s.ltp, s.open, s.high,
-		       s.low, s.close, s.vol, s.oi, s.bid, s.ask, s.bid_qty, s.ask_qty,
-		       s.cautionary_message_info, s.last_updated
+		       s.id, COALESCE(s.exchange_instrument_id,''), COALESCE(s.segment,''), COALESCE(s.instrument_type,''),
+		       s.symbol, COALESCE(s.display_name,''), COALESCE(s.company_name,''), COALESCE(s.isin,''),
+		       COALESCE(s.series,''), COALESCE(s.exchange,''), COALESCE(s.contract_expiration,''),
+		       COALESCE(s.strike,0), COALESCE(s.option_type,''), COALESCE(s.underlying_symbol_id,''),
+		       COALESCE(s.underlying_symbol,''), COALESCE(s.lot_size,0), COALESCE(s.tick_size,0),
+		       COALESCE(s.upper_circuit,0), COALESCE(s.lower_circuit,0), COALESCE(s.freeze_qty,0),
+		       COALESCE(s.description,''), COALESCE(s.ltp,0), COALESCE(s.open,0), COALESCE(s.high,0),
+		       COALESCE(s.low,0), COALESCE(s.close,0), COALESCE(s.vol,0), COALESCE(s.oi,0),
+		       COALESCE(s.bid,0), COALESCE(s.ask,0), COALESCE(s.bid_qty,0), COALESCE(s.ask_qty,0),
+		       COALESCE(s.cautionary_message_info,''), s.last_updated
 		FROM portfolios p
 		JOIN stocks s ON s.id = p.stock_id
 		WHERE p.user_id = $1 AND p.stock_id = $2 AND p.quantity > 0
