@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-background text-on-surface antialiased;
+  }
+  body {
+    @apply bg-background text-on-surface font-body-md;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #353535;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #5d3e42;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    background: rgba(10, 10, 10, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid #1F2937;
+  }
+  .inner-rim {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  .tabular-nums {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .input-field {
+    @apply bg-surface-container-low border border-border-muted rounded-lg px-4 py-3 text-on-surface placeholder:text-surface-variant
+           focus:outline-none focus:border-electric-crimson focus:ring-1 focus:ring-electric-crimson transition-all;
+  }
+  .btn-primary {
+    @apply bg-electric-crimson hover:bg-primary-container text-on-primary font-label-caps text-label-caps
+           px-6 py-2.5 rounded-lg transition-colors flex items-center justify-center shadow-[0_0_15px_rgba(255,0,94,0.3)];
+  }
+  .btn-secondary {
+    @apply bg-surface-container-high hover:bg-surface-bright border border-border-muted text-on-surface
+           font-label-caps text-label-caps px-6 py-2.5 rounded-lg transition-colors flex items-center justify-center;
+  }
+  .btn-ghost {
+    @apply text-on-surface-variant hover:text-on-surface transition-colors px-4 py-2 rounded-lg;
+  }
+  .badge-completed {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider
+           bg-tertiary/10 text-tertiary border border-tertiary/20;
+  }
+  .badge-pending {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider
+           bg-secondary/10 text-secondary border border-secondary/20;
+  }
+  .badge-cancelled {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider
+           bg-error-pure/10 text-error-pure border border-error-pure/20;
+  }
+  .sparkline-positive path {
+    stroke: #059669;
+  }
+  .sparkline-negative path {
+    stroke: #FF005E;
+  }
+  .glow-effect {
+    box-shadow: 0 0 15px rgba(255, 0, 94, 0.2);
+  }
+  .chart-grid {
+    background-image:
+      linear-gradient(to right, #1F2937 1px, transparent 1px),
+      linear-gradient(to bottom, #1F2937 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: center bottom;
+  }
+}
