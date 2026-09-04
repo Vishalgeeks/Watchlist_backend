@@ -2,6 +2,7 @@ package trade
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"watchlist-backend/pkg/models"
@@ -45,6 +46,7 @@ func (h *Handler) ExecuteOrder(w http.ResponseWriter, r *http.Request) {
 
 	trade, err := h.service.ExecuteOrder(ctx, userID, orderID, req.ExecutionPrice)
 	if err != nil {
+		log.Printf("execute order failed: user_id=%d order_id=%d err=%v", userID, orderID, err)
 		msg := err.Error()
 		switch msg {
 		case "order not found":

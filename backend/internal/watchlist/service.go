@@ -106,26 +106,21 @@ func (s *Service) GetStocks(ctx context.Context, userID, watchlistID int) ([]mod
 		return nil, errors.New("unauthorized")
 	}
 
-	key := stocksKey(watchlistID)
-
-	// Step 1: Cache check
-	val, err := cache.Rdb.Get(ctx, key).Result()
-	if err == nil {
-		var items []models.WatchlistItem
-		if err := json.Unmarshal([]byte(val), &items); err == nil {
-			return items, nil
-		}
-	}
-
-	// Step 2: Cache MISS — DB se lo
 	items, err := s.repo.GetStocks(ctx, watchlistID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Step 3: Cache store — 2 min TTL (stocks change hote hain)
-	if data, err := json.Marshal(items); err == nil {
-		cache.Rdb.Set(ctx, key, data, 2*time.Minute)
+	for i := range items {
+		if items[i].Stock != nil {
+			items[i].Stock.LTP = items[i].Stock.LTP
+			if items[i].Stock.Close > 0 {
+				change := items[i].Stock.LTP - items[i].Stock.Close
+				items[i].Stock.High = max(items[i].Stock.High, items[i].Stock.LTP)
+				items[i].Stock.Low = min(items[i].Stock.Low, items[i].Stock.LTP)
+				_ = change
+			}
+		}
 	}
 
 	return items, nil

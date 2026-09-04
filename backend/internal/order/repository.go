@@ -107,15 +107,12 @@ func (r *Repository) GetAllByUserID(ctx context.Context, userID int) ([]models.O
 }
 
 func (r *Repository) StockExists(ctx context.Context, stockID int) (bool, error) {
-	var exists bool
-	err := r.db.QueryRowContext(ctx, `SELECT 1 FROM stocks WHERE id = $1`, stockID).Scan(&exists)
-	if err == sql.ErrNoRows {
-		return false, nil
-	}
+	var count int
+	err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM stocks WHERE id = $1`, stockID).Scan(&count)
 	if err != nil {
 		return false, err
 	}
-	return exists, nil
+	return count > 0, nil
 }
 
 func (r *Repository) CancelOrder(ctx context.Context, orderID, userID int) (bool, error) {

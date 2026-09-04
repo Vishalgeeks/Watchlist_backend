@@ -127,44 +127,34 @@ func main() {
 
 	walletHandler := wallet.NewHandler(walletSvc)
 
-	// CSV BACKGROUND LOADER
-	go func() {
+	// CSV BACKGROUND LOADER (optional)
+	if os.Getenv("SKIP_CSV") != "true" {
+		go func() {
+			log.Println("Loading CSV data from URL...")
 
-		log.Println("Loading CSV data from URL...")
+			ctx := context.Background()
 
-		ctx := context.Background()
-
-		stocks, err := csv.ParseCSV(ctx, cfg.CSVURL)
-		if err != nil {
-			log.Printf("CSV load error: %v", err)
-			return
-		}
-
-		inserted := 0
-
-		for _, stock := range stocks {
-
-			if err := csvRepo.UpsertStock(
-				ctx,
-				&stock,
-			); err != nil {
-
-				log.Printf(
-					"Stock insert error: %v",
-					err,
-				)
-				continue
+			stocks, err := csv.ParseCSV(ctx, cfg.CSVURL)
+			if err != nil {
+				log.Printf("CSV load error: %v", err)
+				return
 			}
 
-			inserted++
-		}
+			inserted := 0
 
-		log.Printf(
-			"CSV loaded: %d stocks inserted/updated",
-			inserted,
-		)
+			for _, stock := range stocks {
+				if err := csvRepo.UpsertStock(ctx, &stock); err != nil {
+					log.Printf("Stock insert error: %v", err)
+					continue
+				}
+				inserted++
+			}
 
-	}()
+			log.Printf("CSV loaded: %d stocks inserted/updated", inserted)
+		}()
+	} else {
+		log.Println("SKIP_CSV=true, skipping CSV background loader")
+	}
 
 	// MARKET SERVICE
 	marketSvc := market.NewService(

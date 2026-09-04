@@ -3,6 +3,10 @@ package portfolio
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"time"
+
+	"watchlist-backend/cache"
 	"watchlist-backend/pkg/models"
 )
 
@@ -12,6 +16,10 @@ type Service struct {
 
 func NewService(repo *Repository) *Service {
 	return &Service{repo: repo}
+}
+
+func summaryKey(userID int) string {
+	return fmt.Sprintf("portfolio:summary:%d", userID)
 }
 
 func (s *Service) GetHoldings(ctx context.Context, userID int) ([]models.Portfolio, error) {
@@ -56,6 +64,15 @@ func (s *Service) GetEnrichedHoldings(ctx context.Context, userID int) ([]models
 }
 
 func (s *Service) GetPortfolioSummary(ctx context.Context, userID int) (*models.PortfolioSummary, error) {
+	key := summaryKey(userID)
+
+	// Try cache first
+	var cached models.PortfolioSummary
+	if hit, err := cache.GetJSON(ctx, key, &cached); hit && err == nil {
+		return &cached, nil
+	}
+
+	// Cache miss - compute from DB
 	holdings, err := s.GetEnrichedHoldings(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -70,5 +87,14 @@ func (s *Service) GetPortfolioSummary(ctx context.Context, userID int) (*models.
 	if summary.TotalCostBasis > 0 {
 		summary.TotalPnLPercentage = (summary.TotalUnrealizedPnL / summary.TotalCostBasis) * 100
 	}
+
+	// Store in cache (TTL 45s)
+	cache.SetJSON(ctx, key, summary, 45*time.Second)
 	return summary, nil
+}
+
+// InvalidateSummary removes the cached portfolio summary for a user.
+// Called after any trade execution that changes holdings.
+func (s *Service) InvalidateSummary(ctx context.Context, userID int) {
+	cache.Del(ctx, summaryKey(userID))
 }

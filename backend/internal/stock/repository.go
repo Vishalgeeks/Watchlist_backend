@@ -30,7 +30,12 @@ func (r *Repository) Create(ctx context.Context, stock *models.Stock) error {
 	).Scan(&stock.ID, &stock.LastUpdated)
 }
 
-func (r *Repository) GetAll(ctx context.Context) ([]models.Stock, error) {
+func (r *Repository) GetAllPaginated(ctx context.Context, page, limit int) ([]models.Stock, int, error) {
+	var total int
+	if err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM stocks`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
 	query := `
 		SELECT id, COALESCE(exchange_instrument_id,''), COALESCE(segment,''), COALESCE(instrument_type,''), symbol,
 		       COALESCE(display_name,''), COALESCE(company_name,''), COALESCE(isin,''), COALESCE(series,''),
@@ -41,10 +46,13 @@ func (r *Repository) GetAll(ctx context.Context) ([]models.Stock, error) {
 		       COALESCE(bid_qty,0), COALESCE(ask_qty,0), COALESCE(cautionary_message_info,''), last_updated
 		FROM stocks
 		ORDER BY symbol
+		LIMIT $1 OFFSET $2
 	`
-	rows, err := r.db.QueryContext(ctx, query)
+
+	offset := (page - 1) * limit
+	rows, err := r.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -60,11 +68,11 @@ func (r *Repository) GetAll(ctx context.Context) ([]models.Stock, error) {
 			&s.CautionaryMessageInfo, &s.LastUpdated,
 		)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		stocks = append(stocks, s)
 	}
-	return stocks, nil
+	return stocks, total, nil
 }
 
 func (r *Repository) GetByID(ctx context.Context, id string) (*models.Stock, error) {

@@ -60,18 +60,16 @@ func (h *Handler) CreateStock(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) GetAllStocks(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	page := r.URL.Query().Get("page")
+	limit := r.URL.Query().Get("limit")
 
-	stocks, err := h.service.GetAllStocks(ctx)
+	stocks, err := h.service.GetAllStocks(ctx, page, limit)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, models.Response{
 			Success: false,
 			Message: err.Error(),
 		})
 		return
-	}
-
-	if stocks == nil {
-		stocks = []models.Stock{}
 	}
 
 	writeJSON(w, http.StatusOK, models.Response{

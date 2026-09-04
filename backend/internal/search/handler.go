@@ -17,15 +17,15 @@ func NewHandler(service *Service) *Handler {
 func (h *Handler) SearchStocks(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	query := r.URL.Query().Get("query")
-
+	query := normalizeSearchQuery(r.URL.Query().Get("query"))
 	if query == "" {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusOK)
 
 		json.NewEncoder(w).Encode(models.Response{
-			Success: false,
-			Message: "query is required",
+			Success: true,
+			Message: "search results",
+			Data:    []models.Stock{},
 		})
 		return
 	}

@@ -75,7 +75,17 @@ func (r *Repository) UpdateBalanceWithinTx(ctx context.Context, tx *sql.Tx, user
 
 func (r *Repository) CreateWallet(ctx context.Context, userID int, initialBalance float64) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO wallets (user_id, balance) VALUES ($1, $2)`,
+		`INSERT INTO wallets (user_id, balance) VALUES ($1, $2)
+		ON CONFLICT (user_id) DO NOTHING`,
+		userID, initialBalance,
+	)
+	return err
+}
+
+func (r *Repository) CreateWalletWithinTx(ctx context.Context, tx *sql.Tx, userID int, initialBalance float64) error {
+	_, err := tx.ExecContext(ctx,
+		`INSERT INTO wallets (user_id, balance) VALUES ($1, $2)
+		ON CONFLICT (user_id) DO NOTHING`,
 		userID, initialBalance,
 	)
 	return err

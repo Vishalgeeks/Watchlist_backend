@@ -17,10 +17,15 @@ func NewService(repo *Repository) *Service {
 
 func (s *Service) GetWallet(ctx context.Context, userID int) (*models.Wallet, error) {
 	w, err := s.repo.GetByUserID(ctx, userID)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		return w, nil
 	}
-	return w, nil
+	if err.Error() == "wallet not found" {
+		if createErr := s.CreateWalletForUser(ctx, userID); createErr == nil {
+			return s.repo.GetByUserID(ctx, userID)
+		}
+	}
+	return nil, err
 }
 
 func (s *Service) AdjustBalance(ctx context.Context, userID int, amount float64) error {
@@ -35,6 +40,20 @@ func (s *Service) CreateWalletForUser(ctx context.Context, userID int) error {
 	return s.repo.CreateWallet(ctx, userID, 100000.00)
 }
 
+func (s *Service) ensureWalletInTx(ctx context.Context, tx *sql.Tx, userID int) (*models.Wallet, error) {
+	wallet, err := s.repo.GetByUserIDWithinTx(ctx, tx, userID)
+	if err == nil {
+		return wallet, nil
+	}
+	if err.Error() != "wallet not found" {
+		return nil, err
+	}
+	if err := s.repo.CreateWalletWithinTx(ctx, tx, userID, 100000.00); err != nil {
+		return nil, err
+	}
+	return s.repo.GetByUserIDWithinTx(ctx, tx, userID)
+}
+
 func (s *Service) Deposit(ctx context.Context, userID int, amount float64, description *string) (*models.WalletTransaction, error) {
 	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
@@ -42,25 +61,27 @@ func (s *Service) Deposit(ctx context.Context, userID int, amount float64, descr
 	}
 	defer tx.Rollback()
 
-	// Update balance
-	if err := s.repo.UpdateBalanceWithinTx(ctx, tx, userID, amount); err != nil {
-		return nil, err
-	}
-
-	// Get wallet to find wallet_id and updated balance
-	wallet, err := s.repo.GetByUserIDWithinTx(ctx, tx, userID)
+	wallet, err := s.ensureWalletInTx(ctx, tx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create transaction record
+	if err := s.repo.UpdateBalanceWithinTx(ctx, tx, userID, amount); err != nil {
+		return nil, err
+	}
+
+	wallet, err = s.repo.GetByUserIDWithinTx(ctx, tx, userID)
+	if err != nil {
+		return nil, err
+	}
+
 	t := &models.WalletTransaction{
-		WalletID:      wallet.ID,
-		UserID:        userID,
-		Type:          "DEPOSIT",
-		Amount:        amount,
-		BalanceAfter:  wallet.Balance,
-		Description:   description,
+		WalletID:     wallet.ID,
+		UserID:       userID,
+		Type:         "DEPOSIT",
+		Amount:       amount,
+		BalanceAfter: wallet.Balance,
+		Description:  description,
 	}
 	if err := s.repo.CreateTransactionWithinTx(ctx, tx, t); err != nil {
 		return nil, err
@@ -79,30 +100,35 @@ func (s *Service) Withdraw(ctx context.Context, userID int, amount float64, desc
 	}
 	defer tx.Rollback()
 
-	// Update balance (negative amount for withdrawal)
-	if err := s.repo.UpdateBalanceWithinTx(ctx, tx, userID, -amount); err != nil {
-		return nil, err
-	}
-
-	// Get wallet to find wallet_id and updated balance
-	wallet, err := s.repo.GetByUserIDWithinTx(ctx, tx, userID)
+	wallet, err := s.ensureWalletInTx(ctx, tx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check balance is not negative
+	if wallet.Balance < amount {
+		return nil, errors.New("insufficient balance")
+	}
+
+	if err := s.repo.UpdateBalanceWithinTx(ctx, tx, userID, -amount); err != nil {
+		return nil, err
+	}
+
+	wallet, err = s.repo.GetByUserIDWithinTx(ctx, tx, userID)
+	if err != nil {
+		return nil, err
+	}
+
 	if wallet.Balance < 0 {
 		return nil, errors.New("insufficient balance")
 	}
 
-	// Create transaction record
 	t := &models.WalletTransaction{
-		WalletID:      wallet.ID,
-		UserID:        userID,
-		Type:          "WITHDRAWAL",
-		Amount:        amount,
-		BalanceAfter:  wallet.Balance,
-		Description:   description,
+		WalletID:     wallet.ID,
+		UserID:       userID,
+		Type:         "WITHDRAWAL",
+		Amount:       amount,
+		BalanceAfter: wallet.Balance,
+		Description:  description,
 	}
 	if err := s.repo.CreateTransactionWithinTx(ctx, tx, t); err != nil {
 		return nil, err
@@ -115,8 +141,7 @@ func (s *Service) Withdraw(ctx context.Context, userID int, amount float64, desc
 }
 
 func (s *Service) RecordTransactionWithinTx(ctx context.Context, tx *sql.Tx, userID int, txType string, amount float64, balanceAfter float64, referenceType *string, referenceID *int, description *string) (*models.WalletTransaction, error) {
-	// Get wallet to find wallet_id
-	wallet, err := s.repo.GetByUserID(ctx, userID)
+	wallet, err := s.ensureWalletInTx(ctx, tx, userID)
 	if err != nil {
 		return nil, err
 	}
