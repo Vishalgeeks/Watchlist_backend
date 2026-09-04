@@ -1,17 +1,112 @@
+# ════════════════════════════════════════════
+#  Environment & Secrets
+# ════════════════════════════════════════════
 .env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+frontend/.env.local
+# Allow templates to be committed
+!.env.example
+!frontend/.env.example
 
-# Go
+# ════════════════════════════════════════════
+#  Go (Backend)
+# ════════════════════════════════════════════
 *.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
 *.out
+*.coverprofile
+backend/boro-server.exe
+backend/cmd.exe
+backend/server.exe
+backend/server.out
+backend/server.err
 
-# Logs
+# ════════════════════════════════════════════
+#  Node / Vite / React (Frontend)
+# ════════════════════════════════════════════
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/.cache/
+frontend/coverage/
+frontend/.next/
+frontend/.nuxt/
+
+# ════════════════════════════════════════════
+#  Logs
+# ════════════════════════════════════════════
 *.log
+*.err
+server.log
+server.err
+server.out
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# OS
+# ════════════════════════════════════════════
+#  OS files
+# ════════════════════════════════════════════
 .DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
 
-# IDE
+# ════════════════════════════════════════════
+#  IDE / Editor
+# ════════════════════════════════════════════
 .vscode/
 .idea/
-# plan
-.kilo
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# ════════════════════════════════════════════
+#  AI / Editor-assistant state
+# ════════════════════════════════════════════
+.kilo/
+.cursor/
+.aider*
+.claude/
+
+# ════════════════════════════════════════════
+#  Temp / Backup
+# ════════════════════════════════════════════
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+
+# Additional common ignores
+# Build/cache
+.parcel-cache/
+.turbo/
+.eslintcache
+.nyc_output/
+
+# Test coverage
+coverage/
+
+# local DB files
+*.db
+*.sqlite
+
+# package manager stores
+.pnp.*
+
+# TypeScript build info
+*.tsbuildinfo
